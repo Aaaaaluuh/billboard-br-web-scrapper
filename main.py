@@ -5,6 +5,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import datetime
 import csv
+import pandas as pd
+import re
 
 # Caminho do ChromeDriver
 chrome_driver_path = "C:\\Users\\luana.ferreira\\ChromeDrive\\chromedriver.exe"
@@ -52,6 +54,8 @@ def scrape_data(url):
             title_container = container.find_element(By.ID, "title-of-a-story").find_element(By.XPATH, '..')
             song_name = title_container.find_element(By.ID, "title-of-a-story").text.strip()
             artist_name = title_container.find_element(By.CLASS_NAME, "c-label").text.strip()
+            artist_name = artist_name.replace(',', ';')
+            rank_date = rank_date.replace(',', ';')
             
             # Adiciona os dados à lista
             data.append([rank_date, rank, artist_name, song_name])
@@ -92,6 +96,43 @@ else:
 
 # Fecha o navegador
 driver.quit()
+
+
+
+
+def limpar_artistas(artista):
+    """Padroniza a coluna de artistas."""
+    duplas_sertanejas = [
+        "Jorge & Mateus", "Henrique & Juliano", "Maiara & Maraisa", 
+        "Hugo & Guilherme", "Felipe & Rodrigo", "Kaique & Felipe", 
+        "Ze Neto & Cristiano", "Clayton & Romario", "Humberto & Ronaldo"
+    ]
+    
+    # Preservar duplas da lista
+    for dupla in duplas_sertanejas:
+        artista = artista.replace(dupla, dupla.replace("&", " E "))
+    
+    # Substituir & globalmente por ;
+    artista = re.sub(r" & ", " ; ", artista)
+    
+    return artista
+
+# Carregar o CSV
+df = pd.read_csv("billboard_hot_100_br_2024.csv")
+
+# Limpeza e padronização
+df['Artista'] = df['Artista'].apply(limpar_artistas)
+df['Num_Artistas'] = df['Artista'].apply(lambda x: len(x.split(';')) if ';' in x else 1)
+df['Colaboracao'] = df['Num_Artistas'] > 1
+
+# Salvar DataFrame limpo para reutilização
+df.to_csv("billboard_cleaned_2024.csv", index=False)
+print("DataFrame limpo salvo.")
+
+
+
+
+
 
 
 
